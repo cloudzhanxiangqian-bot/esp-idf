@@ -136,30 +136,14 @@ void ble_hid_demo_task(void *pvParameters)
 }
 #endif
 
-void on_connection(void)
-{
-    ESP_LOGI(TAG, "ble connected");
-}
-
-void on_disconnection(void)
-{
-    ESP_LOGI(TAG, "ble disconnected");
-}
-
 void ble_hid_task_start_up(void)
 {
     if (s_ble_hid_param.task_hdl) {
         // Task already exists
         return;
     }
-#if !CONFIG_BT_NIMBLE_ENABLED
-    /* Executed for bluedroid */
     xTaskCreate(ble_hid_demo_task, "ble_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3,
                 &s_ble_hid_param.task_hdl);
-#elif CONFIG_EXAMPLE_HID_DEVICE_ROLE == 1
-    xTaskCreate(ble_hid_demo_task, "ble_hid_demo_task", 3 * 1024, NULL, configMAX_PRIORITIES - 3,
-                &s_ble_hid_param.task_hdl);
-#endif
 }
 
 void ble_hid_task_shut_down(void)
@@ -193,14 +177,6 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
     }
     case ESP_HIDD_CONTROL_EVENT: {
         ESP_LOGI(TAG, "CONTROL[%u]: %sSUSPEND", param->control.map_index, param->control.control ? "EXIT_" : "");
-/*         if (param->control.control)
-        {
-            // exit suspend
-            ble_hid_task_start_up();
-        } else {
-            // suspend
-            ble_hid_task_shut_down();
-        } */
     break;
     }
     case ESP_HIDD_OUTPUT_EVENT: {
@@ -216,7 +192,7 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
     case ESP_HIDD_DISCONNECT_EVENT: {
         on_disconnection();
         ESP_LOGI(TAG, "DISCONNECT: %s", esp_hid_disconnect_reason_str(esp_hidd_dev_transport_get(param->disconnect.dev), param->disconnect.reason));
-        //ble_hid_task_shut_down();
+        ble_hid_task_shut_down();
         esp_hid_ble_gap_adv_start();
         break;
     }
