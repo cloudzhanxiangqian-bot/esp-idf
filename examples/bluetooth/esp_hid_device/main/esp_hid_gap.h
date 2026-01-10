@@ -12,29 +12,16 @@
 #define HIDD_BT_MODE 0x02
 #define HIDD_BTDM_MODE 0x03
 
-#if CONFIG_BT_HID_DEVICE_ENABLED
-#if CONFIG_BT_BLE_ENABLED
-#define HID_DEV_MODE HIDD_BTDM_MODE
-#else
-#define HID_DEV_MODE HIDD_BT_MODE
-#endif
-#elif CONFIG_BT_BLE_ENABLED
+
 #define HID_DEV_MODE HIDD_BLE_MODE
-#elif CONFIG_BT_NIMBLE_ENABLED
-#define HID_DEV_MODE HIDD_BLE_MODE
-#else
-#define HID_DEV_MODE HIDD_IDLE_MODE
-#endif
 
 #include "esp_err.h"
 #include "esp_log.h"
 
 #include "esp_bt.h"
-#if !CONFIG_BT_NIMBLE_ENABLED
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_gap_bt_api.h"
-#endif
 #include "esp_hid_common.h"
 #if CONFIG_BT_BLE_ENABLED
 #include "esp_gattc_api.h"
@@ -45,8 +32,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#if !CONFIG_BT_NIMBLE_ENABLED
 typedef struct esp_hidh_scan_result_s {
     struct esp_hidh_scan_result_s *next;
 
@@ -71,7 +56,6 @@ esp_err_t esp_hid_scan(uint32_t seconds, size_t *num_results, esp_hid_scan_resul
 void esp_hid_scan_results_free(esp_hid_scan_result_t *results);
 const char *ble_addr_type_str(esp_ble_addr_type_t ble_addr_type);
 void print_uuid(esp_bt_uuid_t *uuid);
-#endif
 
 esp_err_t esp_hid_gap_init(uint8_t mode);
 

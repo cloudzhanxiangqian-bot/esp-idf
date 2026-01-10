@@ -19,11 +19,6 @@
 #include "nvs_flash.h"
 #include "esp_bt.h"
 
-#if CONFIG_BT_NIMBLE_ENABLED
-#include "host/ble_hs.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#else
 #include "esp_bt_defs.h"
 #if CONFIG_BT_BLE_ENABLED
 #include "esp_gap_ble_api.h"
@@ -35,7 +30,7 @@
 #if CONFIG_BT_SDP_COMMON_ENABLED
 #include "esp_sdp_api.h"
 #endif /* CONFIG_BT_SDP_COMMON_ENABLED */
-#endif
+
 
 #include "esp_hidd.h"
 #include "esp_hid_gap.h"
@@ -50,7 +45,7 @@ typedef struct
     uint8_t *buffer;
 } local_param_t;
 
-#if CONFIG_BT_BLE_ENABLED || CONFIG_BT_NIMBLE_ENABLED
+#if CONFIG_BT_BLE_ENABLED
 static local_param_t s_ble_hid_param = {0};
 
 const unsigned char mediaReportMap[] = {
@@ -679,255 +674,9 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
 }
 #endif
 
-#if CONFIG_BT_HID_DEVICE_ENABLED
-static local_param_t s_bt_hid_param = {0};
-const unsigned char mouseReportMap[] = {
-    0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
-    0x09, 0x02,                    // USAGE (Mouse)
-    0xa1, 0x01,                    // COLLECTION (Application)
-
-    0x09, 0x01,                    //   USAGE (Pointer)
-    0xa1, 0x00,                    //   COLLECTION (Physical)
-
-    0x05, 0x09,                    //     USAGE_PAGE (Button)
-    0x19, 0x01,                    //     USAGE_MINIMUM (Button 1)
-    0x29, 0x03,                    //     USAGE_MAXIMUM (Button 3)
-    0x15, 0x00,                    //     LOGICAL_MINIMUM (0)
-    0x25, 0x01,                    //     LOGICAL_MAXIMUM (1)
-    0x95, 0x03,                    //     REPORT_COUNT (3)
-    0x75, 0x01,                    //     REPORT_SIZE (1)
-    0x81, 0x02,                    //     INPUT (Data,Var,Abs)
-    0x95, 0x01,                    //     REPORT_COUNT (1)
-    0x75, 0x05,                    //     REPORT_SIZE (5)
-    0x81, 0x03,                    //     INPUT (Cnst,Var,Abs)
-
-    0x05, 0x01,                    //     USAGE_PAGE (Generic Desktop)
-    0x09, 0x30,                    //     USAGE (X)
-    0x09, 0x31,                    //     USAGE (Y)
-    0x09, 0x38,                    //     USAGE (Wheel)
-    0x15, 0x81,                    //     LOGICAL_MINIMUM (-127)
-    0x25, 0x7f,                    //     LOGICAL_MAXIMUM (127)
-    0x75, 0x08,                    //     REPORT_SIZE (8)
-    0x95, 0x03,                    //     REPORT_COUNT (3)
-    0x81, 0x06,                    //     INPUT (Data,Var,Rel)
-
-    0xc0,                          //   END_COLLECTION
-    0xc0                           // END_COLLECTION
-};
-
-static esp_hid_raw_report_map_t bt_report_maps[] = {
-    {
-        .data = mouseReportMap,
-        .len = sizeof(mouseReportMap)
-    },
-};
-
-static esp_hid_device_config_t bt_hid_config = {
-    .vendor_id          = 0x16C0,
-    .product_id         = 0x05DF,
-    .version            = 0x0100,
-    .device_name        = "ESP BT HID1",
-    .manufacturer_name  = "Espressif",
-    .serial_number      = "1234567890",
-    .report_maps        = bt_report_maps,
-    .report_maps_len    = 1
-};
-
-// send the buttons, change in x, and change in y
-void send_mouse(uint8_t buttons, char dx, char dy, char wheel)
-{
-    static uint8_t buffer[4] = {0};
-    buffer[0] = buttons;
-    buffer[1] = dx;
-    buffer[2] = dy;
-    buffer[3] = wheel;
-    esp_hidd_dev_input_set(s_bt_hid_param.hid_dev, 0, 0, buffer, 4);
-}
-
-void bt_hid_demo_task(void *pvParameters)
-{
-    static const char* help_string = "########################################################################\n"\
-    "BT hid mouse demo usage:\n"\
-    "You can input these value to simulate mouse: 'q', 'w', 'e', 'a', 's', 'd', 'h'\n"\
-    "q -- click the left key\n"\
-    "w -- move up\n"\
-    "e -- click the right key\n"\
-    "a -- move left\n"\
-    "s -- move down\n"\
-    "d -- move right\n"\
-    "h -- show the help\n"\
-    "########################################################################\n";
-    printf("%s\n", help_string);
-    char c;
-    while (1) {
-        c = fgetc(stdin);
-        switch (c) {
-        case 'q':
-            send_mouse(1, 0, 0, 0);
-            break;
-        case 'w':
-            send_mouse(0, 0, -10, 0);
-            break;
-        case 'e':
-            send_mouse(2, 0, 0, 0);
-            break;
-        case 'a':
-            send_mouse(0, -10, 0, 0);
-            break;
-        case 's':
-            send_mouse(0, 0, 10, 0);
-            break;
-        case 'd':
-            send_mouse(0, 10, 0, 0);
-            break;
-        case 'h':
-            printf("%s\n", help_string);
-            break;
-        default:
-            break;
-        }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
-void bt_hid_task_start_up(void)
-{
-    xTaskCreate(bt_hid_demo_task, "bt_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3, &s_bt_hid_param.task_hdl);
-    return;
-}
-
-void bt_hid_task_shut_down(void)
-{
-    if (s_bt_hid_param.task_hdl) {
-        vTaskDelete(s_bt_hid_param.task_hdl);
-        s_bt_hid_param.task_hdl = NULL;
-    }
-}
-
-static void bt_hidd_event_callback(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
-{
-    esp_hidd_event_t event = (esp_hidd_event_t)id;
-    esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
-    static const char *TAG = "HID_DEV_BT";
-
-    switch (event) {
-    case ESP_HIDD_START_EVENT: {
-        if (param->start.status == ESP_OK) {
-            ESP_LOGI(TAG, "START OK");
-            ESP_LOGI(TAG, "Setting to connectable, discoverable");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-        } else {
-            ESP_LOGE(TAG, "START failed!");
-        }
-        break;
-    }
-    case ESP_HIDD_CONNECT_EVENT: {
-        if (param->connect.status == ESP_OK) {
-            ESP_LOGI(TAG, "CONNECT OK");
-            ESP_LOGI(TAG, "Setting to non-connectable, non-discoverable");
-            esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
-            bt_hid_task_start_up();
-        } else {
-            ESP_LOGE(TAG, "CONNECT failed!");
-        }
-        break;
-    }
-    case ESP_HIDD_PROTOCOL_MODE_EVENT: {
-        ESP_LOGI(TAG, "PROTOCOL MODE[%u]: %s", param->protocol_mode.map_index, param->protocol_mode.protocol_mode ? "REPORT" : "BOOT");
-        break;
-    }
-    case ESP_HIDD_OUTPUT_EVENT: {
-        ESP_LOGI(TAG, "OUTPUT[%u]: %8s ID: %2u, Len: %d, Data:", param->output.map_index, esp_hid_usage_str(param->output.usage), param->output.report_id, param->output.length);
-        ESP_LOG_BUFFER_HEX(TAG, param->output.data, param->output.length);
-        break;
-    }
-    case ESP_HIDD_FEATURE_EVENT: {
-        ESP_LOGI(TAG, "FEATURE[%u]: %8s ID: %2u, Len: %d, Data:", param->feature.map_index, esp_hid_usage_str(param->feature.usage), param->feature.report_id, param->feature.length);
-        ESP_LOG_BUFFER_HEX(TAG, param->feature.data, param->feature.length);
-        break;
-    }
-    case ESP_HIDD_DISCONNECT_EVENT: {
-        if (param->disconnect.status == ESP_OK) {
-            ESP_LOGI(TAG, "DISCONNECT OK");
-            bt_hid_task_shut_down();
-            ESP_LOGI(TAG, "Setting to connectable, discoverable again");
-            esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-        } else {
-            ESP_LOGE(TAG, "DISCONNECT failed!");
-        }
-        break;
-    }
-    case ESP_HIDD_STOP_EVENT: {
-        ESP_LOGI(TAG, "STOP");
-        break;
-    }
-    default:
-        break;
-    }
-    return;
-}
-
-#if CONFIG_BT_SDP_COMMON_ENABLED
-static void esp_sdp_cb(esp_sdp_cb_event_t event, esp_sdp_cb_param_t *param)
-{
-    switch (event) {
-    case ESP_SDP_INIT_EVT:
-        ESP_LOGI(TAG, "ESP_SDP_INIT_EVT: status:%d", param->init.status);
-        if (param->init.status == ESP_SDP_SUCCESS) {
-            esp_bluetooth_sdp_dip_record_t dip_record = {
-                .hdr =
-                    {
-                        .type = ESP_SDP_TYPE_DIP_SERVER,
-                    },
-                .vendor           = bt_hid_config.vendor_id,
-                .vendor_id_source = ESP_SDP_VENDOR_ID_SRC_BT,
-                .product          = bt_hid_config.product_id,
-                .version          = bt_hid_config.version,
-                .primary_record   = true,
-            };
-            esp_sdp_create_record((esp_bluetooth_sdp_record_t *)&dip_record);
-        }
-        break;
-    case ESP_SDP_DEINIT_EVT:
-        ESP_LOGI(TAG, "ESP_SDP_DEINIT_EVT: status:%d", param->deinit.status);
-        break;
-    case ESP_SDP_SEARCH_COMP_EVT:
-        ESP_LOGI(TAG, "ESP_SDP_SEARCH_COMP_EVT: status:%d", param->search.status);
-        break;
-    case ESP_SDP_CREATE_RECORD_COMP_EVT:
-        ESP_LOGI(TAG, "ESP_SDP_CREATE_RECORD_COMP_EVT: status:%d, handle:0x%x", param->create_record.status,
-                 param->create_record.record_handle);
-        break;
-    case ESP_SDP_REMOVE_RECORD_COMP_EVT:
-        ESP_LOGI(TAG, "ESP_SDP_REMOVE_RECORD_COMP_EVT: status:%d", param->remove_record.status);
-        break;
-    default:
-        break;
-    }
-}
-#endif /* CONFIG_BT_SDP_COMMON_ENABLED */
-
-#endif
-
-#if CONFIG_BT_NIMBLE_ENABLED
-void ble_hid_device_host_task(void *param)
-{
-    ESP_LOGI(TAG, "BLE Host Task Started");
-    /* This function will return only when nimble_port_stop() is executed */
-    nimble_port_run();
-
-    nimble_port_freertos_deinit();
-}
-void ble_store_config_init(void);
-#endif
-
 void app_main(void)
 {
     esp_err_t ret;
-#if HID_DEV_MODE == HIDD_IDLE_MODE
-    ESP_LOGE(TAG, "Please turn on BT HID device or BLE!");
-    return;
-#endif
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -939,7 +688,7 @@ void app_main(void)
     ret = esp_hid_gap_init(HID_DEV_MODE);
     ESP_ERROR_CHECK( ret );
 
-#if CONFIG_BT_BLE_ENABLED || CONFIG_BT_NIMBLE_ENABLED
+
 #if CONFIG_EXAMPLE_HID_DEVICE_ROLE == 2
     ret = esp_hid_ble_gap_adv_init(ESP_HID_APPEARANCE_KEYBOARD, ble_hid_config.device_name);
 #elif CONFIG_EXAMPLE_HID_DEVICE_ROLE == 3
@@ -948,43 +697,13 @@ void app_main(void)
     ret = esp_hid_ble_gap_adv_init(ESP_HID_APPEARANCE_GENERIC, ble_hid_config.device_name);
 #endif
     ESP_ERROR_CHECK( ret );
-#if CONFIG_BT_BLE_ENABLED
+
     if ((ret = esp_ble_gatts_register_callback(esp_hidd_gatts_event_handler)) != ESP_OK) {
         ESP_LOGE(TAG, "GATTS register callback failed: %d", ret);
         return;
     }
-#endif
+
     ESP_LOGI(TAG, "setting ble device");
     ESP_ERROR_CHECK(
         esp_hidd_dev_init(&ble_hid_config, ESP_HID_TRANSPORT_BLE, ble_hidd_event_callback, &s_ble_hid_param.hid_dev));
-#endif
-
-#if CONFIG_BT_HID_DEVICE_ENABLED
-    ESP_LOGI(TAG, "setting device name");
-    esp_bt_gap_set_device_name(bt_hid_config.device_name);
-    ESP_LOGI(TAG, "setting cod major, peripheral");
-    esp_bt_cod_t cod = {0};
-    cod.major = ESP_BT_COD_MAJOR_DEV_PERIPHERAL;
-    cod.minor = ESP_BT_COD_MINOR_PERIPHERAL_POINTING;
-    esp_bt_gap_set_cod(cod, ESP_BT_SET_COD_MAJOR_MINOR);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    ESP_LOGI(TAG, "setting bt device");
-    ESP_ERROR_CHECK(
-        esp_hidd_dev_init(&bt_hid_config, ESP_HID_TRANSPORT_BT, bt_hidd_event_callback, &s_bt_hid_param.hid_dev));
-#if CONFIG_BT_SDP_COMMON_ENABLED
-    ESP_ERROR_CHECK(esp_sdp_register_callback(esp_sdp_cb));
-    ESP_ERROR_CHECK(esp_sdp_init());
-#endif /* CONFIG_BT_SDP_COMMON_ENABLED */
-#endif /* CONFIG_BT_HID_DEVICE_ENABLED */
-#if CONFIG_BT_NIMBLE_ENABLED
-    /* XXX Need to have template for store */
-    ble_store_config_init();
-
-    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
-	/* Starting nimble task after gatts is initialized*/
-    ret = esp_nimble_enable(ble_hid_device_host_task);
-    if (ret) {
-        ESP_LOGE(TAG, "esp_nimble_enable failed: %d", ret);
-    }
-#endif
 }
