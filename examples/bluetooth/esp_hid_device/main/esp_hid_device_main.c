@@ -36,6 +36,8 @@
 #include "esp_hid_gap.h"
 
 static const char *TAG = "HID_DEV_DEMO";
+extern void init_gpio_led_pm(void);
+extern void switch_gpio(bool on);
 
 typedef struct
 {
@@ -130,28 +132,20 @@ static esp_hid_device_config_t ble_hid_config = {
 #if !CONFIG_BT_NIMBLE_ENABLED || CONFIG_EXAMPLE_HID_DEVICE_ROLE == 1
 void ble_hid_demo_task(void *pvParameters)
 {
-
-    ESP_LOGI(TAG, "Task finished, deleting myself.");
+    switch_gpio(true);
     vTaskDelete(NULL); // 修复：正确地注销该任务
 }
 #endif
 
 void ble_hid_task_start_up(void)
 {
-    if (s_ble_hid_param.task_hdl) {
-        // Task already exists
-        return;
-    }
     xTaskCreate(ble_hid_demo_task, "ble_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3,
                 &s_ble_hid_param.task_hdl);
 }
 
 void ble_hid_task_shut_down(void)
 {
-    if (s_ble_hid_param.task_hdl) {
-        vTaskDelete(s_ble_hid_param.task_hdl);
-        s_ble_hid_param.task_hdl = NULL;
-    }
+    switch_gpio(false);
 }
 
 static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, int32_t id, void *event_data)
@@ -168,7 +162,6 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
     }
     case ESP_HIDD_CONNECT_EVENT: {
         ESP_LOGI(TAG, "CONNECTed");
-        on_connection();
         break;
     }
     case ESP_HIDD_PROTOCOL_MODE_EVENT: {
@@ -190,7 +183,6 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
         break;
     }
     case ESP_HIDD_DISCONNECT_EVENT: {
-        on_disconnection();
         ESP_LOGI(TAG, "DISCONNECT: %s", esp_hid_disconnect_reason_str(esp_hidd_dev_transport_get(param->disconnect.dev), param->disconnect.reason));
         ble_hid_task_shut_down();
         esp_hid_ble_gap_adv_start();
@@ -206,6 +198,7 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
     return;
 }
 #endif
+
 
 void app_main(void)
 {
@@ -233,4 +226,6 @@ void app_main(void)
     ESP_LOGI(TAG, "setting ble device");
     ESP_ERROR_CHECK(
         esp_hidd_dev_init(&ble_hid_config, ESP_HID_TRANSPORT_BLE, ble_hidd_event_callback, &s_ble_hid_param.hid_dev));
+
+    init_gpio_led_pm();
 }
