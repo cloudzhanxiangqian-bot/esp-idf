@@ -112,7 +112,7 @@ void init_gpio_led_pm(){
     configure_led();
     esp_pm_config_t pm_config = {
         .max_freq_mhz = 80,
-        .min_freq_mhz = 10
+        .min_freq_mhz = 40
     };
     esp_pm_configure(&pm_config);
 }

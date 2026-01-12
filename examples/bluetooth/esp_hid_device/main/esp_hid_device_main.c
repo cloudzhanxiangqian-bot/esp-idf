@@ -122,7 +122,7 @@ static esp_hid_device_config_t ble_hid_config = {
     .vendor_id          = 0x16C0,
     .product_id         = 0x05DF,
     .version            = 0x0100,
-    .device_name        = "ESP BLE HID2",
+    .device_name        = "ESP BLE ZXQ",
     .manufacturer_name  = "Espressif",
     .serial_number      = "1234567890",
     .report_maps        = ble_report_maps,
@@ -153,7 +153,7 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
     esp_hidd_event_t event = (esp_hidd_event_t)id;
     esp_hidd_event_data_t *param = (esp_hidd_event_data_t *)event_data;
     static const char *TAG = "HID_DEV_BLE";
-
+    ESP_LOGI(TAG, "Free heap: %u bytes", esp_get_free_heap_size());
     switch (event) {
     case ESP_HIDD_START_EVENT: {
         ESP_LOGI(TAG, "START");

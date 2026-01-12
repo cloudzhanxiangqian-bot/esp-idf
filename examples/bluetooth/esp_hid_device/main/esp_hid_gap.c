@@ -257,7 +257,7 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_p
     /*
      * SCAN
      * */
-    case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT: {
+/*     case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT: {
         ESP_LOGV(TAG, "BLE GAP EVENT SCAN_PARAM_SET_COMPLETE");
         SEND_BLE_CB();
         break;
@@ -281,7 +281,7 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_p
     case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT: {
         ESP_LOGV(TAG, "BLE GAP EVENT SCAN CANCELED");
         break;
-    }
+    } */
 
     /*
      * ADVERTISEMENT
