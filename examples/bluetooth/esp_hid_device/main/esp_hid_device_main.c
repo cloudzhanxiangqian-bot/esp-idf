@@ -139,7 +139,7 @@ void ble_hid_demo_task(void *pvParameters)
 
 void ble_hid_task_start_up(void)
 {
-    xTaskCreate(ble_hid_demo_task, "ble_hid_demo_task", 2 * 1024, NULL, configMAX_PRIORITIES - 3,
+    xTaskCreate(ble_hid_demo_task, "ble_hid_demo_task", 4 * 1024, NULL, configMAX_PRIORITIES - 3,
                 &s_ble_hid_param.task_hdl);
 }
 

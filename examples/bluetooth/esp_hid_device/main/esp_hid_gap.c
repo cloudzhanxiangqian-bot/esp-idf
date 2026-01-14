@@ -461,8 +461,8 @@ esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name)
 esp_err_t esp_hid_ble_gap_adv_start(void)
 {
     static esp_ble_adv_params_t hidd_adv_params = {
-        .adv_int_min        = 0x20,
-        .adv_int_max        = 0x30,
+        .adv_int_min        = 0x01E0,
+        .adv_int_max        = 0x01E0,
         .adv_type           = ADV_TYPE_IND,
         .own_addr_type      = BLE_ADDR_TYPE_PUBLIC,
         .channel_map        = ADV_CHNL_ALL,

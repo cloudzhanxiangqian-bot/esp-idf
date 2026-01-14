@@ -111,8 +111,8 @@ void init_gpio_led_pm(){
     //gpio_set_level(GPIO_OUTPUT_PIN, 1);
     configure_led();
     esp_pm_config_t pm_config = {
-        .max_freq_mhz = 80,
-        .min_freq_mhz = 40
+        .max_freq_mhz = 60,
+        .min_freq_mhz = 20
     };
     esp_pm_configure(&pm_config);
 }
