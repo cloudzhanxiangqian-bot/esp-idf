@@ -222,8 +222,8 @@ esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name)
         .p_manufacturer_data = NULL,
         .service_data_len = 0,
         .p_service_data = NULL,
-        .service_uuid_len = sizeof(hidd_service_uuid128),
-        .p_service_uuid = (uint8_t *)hidd_service_uuid128,
+        .service_uuid_len = 0,
+        .p_service_uuid = NULL,
         .flag = 0x6,
     };
 

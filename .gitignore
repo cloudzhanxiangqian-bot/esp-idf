@@ -42,6 +42,7 @@ components/**/sdkconfig.old
 examples/**/build/
 examples/**/build_*_*/
 examples/**/sdkconfig
+!examples/**/sdkconfig.defaults
 examples/**/sdkconfig.old
 
 # Unit test app files
