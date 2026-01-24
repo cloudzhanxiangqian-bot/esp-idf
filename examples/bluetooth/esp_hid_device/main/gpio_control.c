@@ -92,11 +92,12 @@ static void configure_led(void)
 
 void switch_gpio(bool on)
 {
+    gpio_hold_dis(GPIO_OUTPUT_PIN);
     gpio_set_level(GPIO_OUTPUT_PIN, on);
-    gpio_hold_en(GPIO_OUTPUT_PIN);
     s_led_state = on;
     blink_led();
     ESP_LOGI(TAG, "turn gpio switch %d.", on);
+    gpio_hold_en(GPIO_OUTPUT_PIN);
 }
 
 void init_gpio_led_pm(){
@@ -109,12 +110,12 @@ void init_gpio_led_pm(){
         .pull_up_en   = 0,
     };
     ESP_ERROR_CHECK(gpio_config(&io_conf));
-    //gpio_set_level(GPIO_OUTPUT_PIN, 1);
     configure_led();
+    switch_gpio(false);
     esp_pm_config_t pm_config = {
         .max_freq_mhz = 60,
         .min_freq_mhz = 20,
-        .light_sleep_enable = true
+        .light_sleep_enable = false
     };
     esp_pm_configure(&pm_config);
 }

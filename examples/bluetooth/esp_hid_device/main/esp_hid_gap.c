@@ -215,8 +215,8 @@ esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name)
         .include_txpower = true,
         // 0x0320 * 1.25ms = 1000ms (1秒)
         // 0x0640 * 1.25ms = 2000ms (2秒)
-        .min_interval = 0x0320,
-        .max_interval = 0x0640,
+        .min_interval = 0x0640,
+        .max_interval = 0x1280,
         .appearance = appearance,
         .manufacturer_len = 0,
         .p_manufacturer_data = NULL,
@@ -291,8 +291,10 @@ esp_err_t esp_hid_ble_gap_adv_init(uint16_t appearance, const char *device_name)
 esp_err_t esp_hid_ble_gap_adv_start(void)
 {
     static esp_ble_adv_params_t hidd_adv_params = {
-        .adv_int_min = 0x01E0,
-        .adv_int_max = 0x01E0,
+        //.adv_int_min = 0x01E0,
+        //.adv_int_max = 0x01E0,
+        .adv_int_min = 0x0640, // 最小广播间隔：1秒  (1秒)
+        .adv_int_max = 0x0C80, // 最大广播间隔：2秒 (0x0C80 × 0.625ms = 2000ms)
         .adv_type = ADV_TYPE_IND,
         .own_addr_type = BLE_ADDR_TYPE_PUBLIC,
         .channel_map = ADV_CHNL_ALL,
